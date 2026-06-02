@@ -1,0 +1,60 @@
+# --- Secrets, credentials, and anything sensitive ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+secrets/
+**/private/
+*.conf.local
+*.local
+credentials.*
+*credentials*
+
+# --- VPN configs (contain private keys) ---
+wg*.conf
+*.ovpn
+nordvpn-token.txt
+nordvpn-*.conf
+gluetun.env
+control-server.toml
+
+# --- Anything labeled "actual" or "real" ---
+*actual*
+*real-*
+
+# --- Backups ---
+backup/
+backups/
+*.bak
+
+# --- OS and editor noise ---
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/settings.json
+.idea/
+
+# --- Logs that may contain sensitive data ---
+*.log
+logs/
+!docs/**/*.log.example
+
+# --- Built artifacts ---
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+
+# --- Audit reports with potentially identifying info ---
+lynis-report.dat
+*.audit.raw
+
+# --- Keep folder structure for empty dirs ---
+!.gitkeep
