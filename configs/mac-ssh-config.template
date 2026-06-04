@@ -1,0 +1,25 @@
+# ~/.ssh/config — Mac side shortcut for the autonomous agent host
+# TAILSCALE_IP: [REPLACE_ME_TAILSCALE_IP]
+# USER: this build is root-only, so the Server login user is `root`.
+# Steady-state admin path is `tailscale ssh root@homelab`; OpenSSH is break-glass only.
+
+# Option A — preferred shortcut using MagicDNS + Tailscale transport:
+Host homelab
+  HostName homelab
+  ProxyCommand tailscale nc %h %p
+  User root
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+  ServerAliveInterval 60
+  ServerAliveCountMax 3
+  StrictHostKeyChecking yes
+  UserKnownHostsFile ~/.ssh/known_hosts
+
+# Option B — static Tailscale IP fallback:
+# Host homelab
+#   HostName [REPLACE_ME_TAILSCALE_IP]
+#   User root
+#   IdentityFile ~/.ssh/id_ed25519
+#   IdentitiesOnly yes
+#   ServerAliveInterval 60
+#   ServerAliveCountMax 3
