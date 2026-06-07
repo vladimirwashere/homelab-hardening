@@ -1,0 +1,17 @@
+# Root-only build: this is a SYSTEM unit (runs as root), installed at
+# /etc/systemd/system/host-rfc1918-alert.service. %h resolves to /root.
+[Unit]
+Description=Host RFC1918 outbound alert delivery
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=STATE_FILE=%h/.local/state/host-alerts/rfc1918-alert.state
+Environment=HOST_LABEL=%H
+EnvironmentFile=%h/.config/host-alerts/rfc1918-alert.env
+# Already root, so no sudo needed to read the kernel log.
+ExecStart=/usr/local/bin/rfc1918-alert-check --tail 15
+
+[Install]
+WantedBy=multi-user.target

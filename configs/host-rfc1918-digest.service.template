@@ -1,0 +1,17 @@
+# Root-only build: this is a SYSTEM unit (runs as root), installed at
+# /etc/systemd/system/host-rfc1918-digest.service. %h resolves to /root.
+[Unit]
+Description=RFC1918 containment digest (twice-daily quiet heartbeat)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=HOST_LABEL=%H
+EnvironmentFile=%h/.config/host-alerts/rfc1918-alert.env
+# Digest mode: quiet summary + suppressed-noise counters over a 12h window.
+# No STATE_FILE — the digest is a fixed-window heartbeat, not incremental.
+ExecStart=/usr/local/bin/rfc1918-alert-check --digest --tail 10
+
+[Install]
+WantedBy=multi-user.target

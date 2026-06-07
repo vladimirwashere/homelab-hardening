@@ -1,0 +1,136 @@
+#!/usr/sbin/nft -f
+
+# ============================================================
+# nftables config — autonomous runtime host
+# Default-deny outbound, drop & log RFC1918 except gateway
+# Tailnet-only inbound is acceptable; physical LAN inbound stays dropped
+# ============================================================
+# Copy to /etc/nftables.conf — verify with `nft -c -f /etc/nftables.conf`
+# REPLACE: every [REPLACE_ME] marker with actual values
+# ============================================================
+
+flush ruleset
+
+table inet filter {
+
+    # === Named sets ===
+    set rfc1918_v4 {
+        type ipv4_addr
+        flags interval
+        elements = {
+            10.0.0.0/8,
+            172.16.0.0/12,
+            192.168.0.0/16,
+            169.254.0.0/16,
+            100.64.0.0/10
+        }
+    }
+
+    set gateway_v4 {
+        type ipv4_addr
+        elements = { [REPLACE_ME_GATEWAY_IP] }   # e.g. 192.168.10.1
+    }
+
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        ct state established,related accept
+        ct state invalid drop
+
+        iif "lo" accept
+
+        ip protocol icmp icmp type {
+            echo-request,
+            echo-reply,
+            destination-unreachable,
+            time-exceeded,
+            parameter-problem
+        } accept
+
+        # Tailscale: accept all decapsulated traffic (SSH, management, tailnet-only services)
+        # Use iifname so the ruleset can load before tailscale0 exists at boot.
+        iifname "tailscale0" accept
+
+        # Tailscale: incoming WireGuard on the physical NIC
+        udp dport 41641 accept
+
+        # SSH defense-in-depth: only via Tailscale if sshd is ever re-enabled
+        tcp dport 22 iifname "tailscale0" accept
+
+        # Log + drop everything else, rate-limited
+        limit rate 10/minute log prefix "[nft-input-drop] " level warn
+        counter drop
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+    }
+
+    chain output {
+        type filter hook output priority 0; policy drop;
+
+        ct state established,related accept
+        ct state invalid drop
+
+        oif "lo" accept
+
+        # Allow to gateway: DNS, DHCP, NTP
+        ip daddr @gateway_v4 udp dport { 53, 67, 123 } accept
+        ip daddr @gateway_v4 tcp dport 53 accept
+        ip daddr @gateway_v4 tcp dport 853 accept               # DNS over TLS (DoT)
+
+        # Optional: if you intentionally query AdGuard on its container IP instead of
+        # localhost, add these two rules above the RFC1918 deny.
+        # ip daddr [REPLACE_ME_ADGUARD_IP] udp dport 53 accept  # e.g. 172.30.0.10
+        # ip daddr [REPLACE_ME_ADGUARD_IP] tcp dport 53 accept
+
+        # === Known-benign RFC1918 noise: drop silently (counter only, no log/alert) ===
+        # These are dropped *without logging* so [nft-deny-rfc1918] stays high-signal and
+        # only fires on genuinely unexpected upstream-LAN attempts. The counters remain
+        # visible via `nft list chain inet filter output` for the twice-daily digest.
+        #   - Tailscale NAT traversal to peer LAN addresses (sport 41641): the direct path
+        #     is denied by design; Tailscale falls back to the DERP relay over TCP 443.
+        #   - MagicDNS to 100.100.100.100: the baseline uses the gateway or local AdGuard for
+        #     DNS, so Tailscale resolver probes are dropped silently instead of paging.
+        #   - NAT-PMP/PCP (UDP 5351) port-mapping requests to the gateway: we never want
+        #     the host punching holes in the router.
+        #   - SSDP/UPnP discovery (UDP 1900) to the gateway: periodic IGD probes; blocked
+        #     because Router 3 UPnP stays off and the host must not discover hole-punch paths.
+        ip daddr @rfc1918_v4 udp sport 41641 counter drop comment "ts-direct-noise"
+        ip daddr 100.100.100.100 udp dport 53 counter drop comment "magicdns-noise"
+        ip daddr @gateway_v4 udp dport 5351 counter drop comment "natpmp-noise"
+        ip daddr @gateway_v4 udp dport 1900 counter drop comment "ssdp-noise"
+
+        # === DENY RFC1918 (except gateway above) ===
+        ip daddr @rfc1918_v4 limit rate 10/minute log prefix "[nft-deny-rfc1918] " level warn
+        ip daddr @rfc1918_v4 counter drop
+
+        # ICMP outbound to PUBLIC destinations (deny happens first above)
+        ip protocol icmp icmp type {
+            echo-request,
+            destination-unreachable,
+            time-exceeded
+        } accept
+
+        # === Allow specific PUBLIC outbound ===
+        tcp dport { 80, 443 } accept
+
+        # Tailscale STUN (UDP 3478) — NAT traversal to public STUN servers
+        # Note: 100.64.0.0/10 is in rfc1918_v4 by design; direct WireGuard to a
+        # LAN-local Mac hits the deny rule. Tailscale falls back to DERP relay
+        # via TCP 443 (allowed above) automatically — no special-casing needed.
+        udp dport { 3478, 41641 } accept
+
+        # NTP to public servers (RFC1918 already dropped above — only reaches public IPs)
+        udp dport 123 accept
+
+        tcp dport 22 accept                # SSH outbound for git
+        tcp dport 9418 accept              # git://
+        tcp dport 853 accept               # DoT
+        udp dport { 51820, 1194, 443 } accept  # VPN protocols
+
+        # Default deny outbound
+        limit rate 10/minute log prefix "[nft-output-drop] " level warn
+        counter drop
+    }
+}

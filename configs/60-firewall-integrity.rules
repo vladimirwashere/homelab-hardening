@@ -1,0 +1,10 @@
+# Phase 06 — auditd watches for firewall and RFC1918 alert integrity
+# Install: /etc/audit/rules.d/60-firewall-integrity.rules
+# Load: augenrules --load && systemctl restart auditd
+
+-w /etc/nftables.conf -p wa -k firewall_config
+-w /etc/systemd/system/host-rfc1918-alert.service -p wa -k firewall_alerting
+-w /etc/systemd/system/host-rfc1918-alert.timer -p wa -k firewall_alerting
+-w /etc/systemd/system/host-rfc1918-digest.service -p wa -k firewall_alerting
+-w /etc/systemd/system/host-rfc1918-digest.timer -p wa -k firewall_alerting
+-a always,exit -F arch=b64 -S execve -F exe=/usr/sbin/nft -k firewall_runtime_change

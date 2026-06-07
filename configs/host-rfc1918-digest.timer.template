@@ -1,0 +1,13 @@
+[Unit]
+Description=Run RFC1918 containment digest at 00:00 and 12:00 local time
+
+[Timer]
+# Twice daily, local time. Each run covers the prior 12h window.
+OnCalendar=*-*-* 00,12:00:00
+Persistent=true
+AccuracySec=1m
+RandomizedDelaySec=30s
+Unit=host-rfc1918-digest.service
+
+[Install]
+WantedBy=timers.target
