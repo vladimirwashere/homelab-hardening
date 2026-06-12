@@ -16,6 +16,10 @@ These templates assume a root-only host baseline with a host-native autonomous r
 | `host-rfc1918-digest.service.template` | Phases 6 and 13 | `/etc/systemd/system/host-rfc1918-digest.service` |
 | `host-rfc1918-digest.timer.template` | Phases 6 and 13 | `/etc/systemd/system/host-rfc1918-digest.timer` |
 | `60-firewall-integrity.rules` | Phase 6 | `/etc/audit/rules.d/60-firewall-integrity.rules` |
+| `hermes-config.yaml.template` | Phase 12 | `/root/.hermes/config.yaml` |
+| `hermes.env.template` | Phase 12 | `/root/.hermes/.env` (chmod 600) |
+| `litellm-config.yaml.template` | Phase 12 (Step 12.10, optional) | `/home/agent-svc/litellm/config.yaml` |
+| `ollama.container.template` | Phase 12 (Step 12.9, optional) | `/home/agent-svc/.config/containers/systemd/ollama.container` |
 
 ## How to use
 

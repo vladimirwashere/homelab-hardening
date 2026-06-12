@@ -1,0 +1,54 @@
+# Hermes Agent configuration template.
+# Goes on system at: /root/.hermes/config.yaml
+# Used in: Phase 12.
+#
+# Defaults match the "~$100/mo trading-environment" row of the
+# Step 12.3 matrix: Sonnet 4.6 orchestrator via OpenRouter, DeepSeek
+# v4-flash for compression, Gemini 2.5 Flash for vision.
+#
+# If you skip the Ollama sidecar (Step 12.9), delete the
+# `embeddings:` block and the `provider: custom` overrides.
+# If you add the LiteLLM sidecar (Step 12.10), replace the
+# `model:` and `auxiliary:` blocks with the LiteLLM variant
+# at the bottom of this file.
+
+model:
+  provider: openrouter
+  model: anthropic/claude-sonnet-4.6
+  base_url: null
+  context_length: 200000
+
+auxiliary:
+  compression:
+    provider: openrouter
+    model: deepseek/deepseek-v4-flash
+    base_url: null
+  vision:
+    provider: openrouter
+    model: google/gemini-2.5-flash
+    base_url: null
+  # Uncomment if Step 12.9 (Ollama sidecar) is in place:
+  # embeddings:
+  #   provider: custom
+  #   model: nomic-embed-text
+  #   base_url: http://127.0.0.1:11434/v1
+
+# ---------------------------------------------------------------
+# LiteLLM proxy variant (Step 12.10). Swap into model/auxiliary
+# above if the LiteLLM sidecar holds the keys instead of Hermes.
+# ---------------------------------------------------------------
+# model:
+#   provider: custom
+#   model: orchestrator
+#   base_url: http://127.0.0.1:4000/v1
+#   context_length: 200000
+#
+# auxiliary:
+#   compression:
+#     provider: custom
+#     model: cheap
+#     base_url: http://127.0.0.1:4000/v1
+#   vision:
+#     provider: custom
+#     model: cheap
+#     base_url: http://127.0.0.1:4000/v1

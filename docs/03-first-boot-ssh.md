@@ -334,7 +334,7 @@ tailscale serve status
 # Expected on a fresh build: no serve config
 ```
 
-## Step 3.6d — Remove the installer's bootstrap user (go root-only)
+## Step 3.6d — Choose `root` as the steady-state admin user
 
 Now that `tailscale ssh root@homelab` works **and** the key-based reverse-tunnel path proved root login over sshd works, the installer's bootstrap user has done its job. Delete it so the box is genuinely root-only.
 

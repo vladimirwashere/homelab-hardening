@@ -1,0 +1,24 @@
+# Ollama rootless Podman quadlet.
+# Goes on system at: /home/agent-svc/.config/containers/systemd/ollama.container
+# Used in: Phase 12, Step 12.9 (optional sidecar).
+#
+# Owner: agent-svc (rootless). After install, agent-svc must have
+# lingering enabled (`loginctl enable-linger agent-svc`) so the
+# container survives without an active session.
+
+[Unit]
+Description=Ollama local model server
+After=network-online.target
+
+[Container]
+Image=docker.io/ollama/ollama:latest
+ContainerName=ollama
+PublishPort=127.0.0.1:11434:11434
+Volume=/mnt/data/agent-svc/ollama:/root/.ollama
+AddDevice=nvidia.com/gpu=all
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
